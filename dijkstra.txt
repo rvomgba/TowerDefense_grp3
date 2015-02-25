@@ -1,0 +1,166 @@
+package Modele;
+
+import java.util.ArrayList;
+
+// algo utilisé : Dijkstra
+// http://openclassrooms.com/courses/le-pathfinding-avec-dijkstra
+
+public class Dijkstra {
+
+	// les monstres se déplaces d'une case en une case dans 4 directions
+	public static Case droite = new Case(1, 0);
+	public static Case gauche = new Case(-1, 0);
+	public static Case haut = new Case(0, 1);
+	public static Case bas = new Case(0, -1);
+	// ajout d'une Case par défaut (quand le monstre a atteint la base ou
+	// quand il ne peut pas passer => étape intermédiaire pour devenir fou.
+	public static Case stop = new Case(0, 0);
+
+	private static int infini = -1; // -1 pour l'algo de Dijkstra
+
+	private Terrain t;
+	private Case depart;
+	private Case arrive;
+	private ArrayList<Case> cases;
+	private ArrayList<Integer> parents;
+	private ArrayList<Integer> poids;
+	private ArrayList<Boolean> parcouru;
+
+	public Dijkstra(Terrain t, Case depart, Case fin) {
+		this.t = t;
+		this.depart = depart;
+		this.arrive = fin;
+		this.cases = new ArrayList<Case>();
+		this.parents = new ArrayList<Integer>();
+		this.parcouru = new ArrayList<Boolean>();
+		this.poids = new ArrayList<Integer>();
+	}
+
+	private void initialiser() {
+		parents.clear();
+		parcouru.clear();
+		poids.clear();
+		cases.clear();
+		for (int i = 0; i < t.getLargeur(); i++) {
+			for (int j = 0; j < t.getHauteur(); j++) {
+				if (t.get_case(new Case(i, j)).isPassable()) {
+					if (new Case(i, j).isEqual(depart)) {
+						poids.add(0);
+					} else {
+						poids.add(infini);
+					}
+					cases.add(new Case(i, j));
+					parents.add(infini);
+					parcouru.add(false);
+				}
+			}
+		}
+	}
+
+	public boolean chemin_existe() {
+		initialiser();
+		ArrayList<Case> fils = new ArrayList<Case>();
+		int min, indice;
+		do {
+			min = chercher_min();
+			if (min != infini) {
+				// on a parcouru ce noeud
+				parcouru.set(min, true);
+				// on cherche les fils;
+				fils.clear();
+				fils.add(new Case(cases.get(min), droite));
+				fils.add(new Case(cases.get(min), gauche));
+				fils.add(new Case(cases.get(min), haut));
+				fils.add(new Case(cases.get(min), bas));
+				for (int i = 0; i < fils.size(); i++) {
+					indice = contient(fils.get(i));
+					if (indice != infini) {
+						if (parcouru.get(indice) == false) {
+							if ((poids.get(min) + 1 < poids.get(indice))
+									| poids.get(indice) == infini) {
+								poids.set(indice, poids.get(min) + 1);
+								parents.set(indice, min);
+							}
+						}
+					}
+				}
+			}
+		} while (min != infini && !cases.get(min).isEqual(arrive));
+		return (cases.get(min).isEqual(arrive));
+	}
+
+	public int contient(Case Case) {
+		int i = 0;
+		for (Case p : cases) {
+			if (p.isEqual(Case)) {
+				return i;
+			}
+			i++;
+		}
+		return infini;
+	}
+
+	private int chercher_min() {
+		int min = cases.size() + 1;
+		int index = infini;
+		for (int i = 0; i < poids.size(); i++) {
+			if (this.parcouru.get(i) == false && this.poids.get(i) != infini) {
+				if (min > this.poids.get(i)) {
+					min = this.poids.get(i);
+					index = i;
+				}
+			}
+		}
+		return index;
+	}
+
+	public Case get_deplacement() {
+		if (depart == arrive) {
+			// on est arrivé
+			return (stop);
+		}
+		if (chemin_existe()) {
+			Integer p = contient(arrive);
+			Integer suivant = p;
+			while (p != contient(depart)) {
+				suivant = p;
+				p = parents.get(p);
+			}
+			return (new Case(cases.get(suivant).x - depart.x,
+					cases.get(suivant).y - depart.y));
+		}
+		// chemin inexistant
+		return (stop);
+	}
+
+	public ArrayList<Case> getParents() {
+		ArrayList<Case> reponse = new ArrayList<Case>();
+		if (chemin_existe()) {
+			Integer p = contient(arrive);
+			while (p != contient(depart)) {
+				reponse.add(cases.get(p));
+				p = parents.get(p);
+			}
+			return reponse;
+		}
+		// il n'y a pas de chemin
+		reponse.add(stop);
+		return reponse;
+	}
+
+	public Case getDepart() {
+		return depart;
+	}
+
+	public void setDepart(Case depart) {
+		this.depart = depart;
+	}
+
+	public Case getArrive() {
+		return arrive;
+	}
+
+	public void setArrive(Case arrive) {
+		this.arrive = arrive;
+	}
+}
